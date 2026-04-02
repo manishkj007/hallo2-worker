@@ -189,6 +189,15 @@ sampler: DDIM
     return config_path
 
 
+def _ensure_symlink():
+    """Create symlink so Hallo2 code finds models at its expected path."""
+    link_path = os.path.join(HALLO2_DIR, "pretrained_models")
+    if os.path.islink(link_path) or os.path.isdir(link_path):
+        return
+    os.symlink(MODEL_DIR, link_path)
+    print(f"[symlink] {link_path} → {MODEL_DIR}")
+
+
 def handle_talking_head(job_input):
     """Generate a talking-head video from portrait image + audio."""
     t0 = time.time()
@@ -196,6 +205,9 @@ def handle_talking_head(job_input):
     # Validate models
     if not _models_ready():
         return {"error": "Models not downloaded. Run 'download_models' action first."}
+
+    # Ensure Hallo2 code can find models via its expected relative path
+    _ensure_symlink()
 
     # Decode inputs
     image_b64 = job_input.get("source_image_b64")
