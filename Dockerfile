@@ -5,10 +5,14 @@
 # Volume layout:
 #   /runpod-volume/hallo2_models/  — all pretrained weights (hallo2, SD1.5, wav2vec, etc.)
 #   /runpod-volume/hallo2_output/  — saved result videos
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+#
+# Use devel image (not runtime) — provides full CUDA toolkit + cuDNN
+# Hallo2 + diffusers need nvrtc, cudnn libs for xformers and conv ops
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 ENV PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    XFORMERS_MORE_DETAILS=1
 
 WORKDIR /app
 
@@ -30,6 +34,9 @@ RUN pip3 install --no-cache-dir \
 
 # Hallo2 dependencies
 RUN cd /app/hallo2 && pip3 install --no-cache-dir -r requirements.txt
+
+# Rebuild xformers for correct CUDA 11.8 + PyTorch 2.2.2 combo
+RUN pip3 install --no-cache-dir xformers==0.0.25.post1 --index-url https://download.pytorch.org/whl/cu118
 
 # RunPod SDK + HuggingFace CLI for one-time model download
 RUN pip3 install --no-cache-dir runpod huggingface_hub[cli]
